@@ -2,8 +2,6 @@
 # Maps a given list of company names to their website domain names
 ########################################################################################### 
 
-# TODO: Add probablistic weighting to elements                                                  #
-
 import urllib
 import json as m_json
 from urlparse import urlparse
@@ -11,7 +9,6 @@ import enchant
 
 ENGLISH_DICT = enchant.Dict("en_US")
 TRIVIAL_WORDS = ["company", "inc", "llc", "the", "of", "a", "an"]
-#TO DO 
 
 # Code adapted from http://stackoverflow.com/questions/3898574/google-search-using-python-script #
 # Assume Q is a list of unique strings
