@@ -8,7 +8,7 @@ You'll need to have previously installed:
 - urlparse 
 - pyenchant
 
-TODO
+To do:
 - Add probablistic weighting 
 - For each website output, say how confident I am about it being a match
 - Convert from company websites to company names
