@@ -15,3 +15,4 @@ def getNCompanies(n=20):
                 arr.append(data)
             i += 1
     return arr
+
