@@ -1,11 +1,19 @@
 ###########################################################################################
 # Maps a given list of company names to their website domain names
+
+# IF WGL Holdings Inc...when making acronym
+#www.wglholdings.com
+
 ########################################################################################### 
 import urllib
 import json as m_json
 from urlparse import urlparse
 import enchant
 import testData
+
+URL_COUNT_WEIGHT = .25 
+URL_ORDER_WEIGHT = -.25
+URL_LEN_WEIGHT = -.1
 
 ENGLISH_DICT = enchant.Dict("en_US")
 TRIVIAL_WORDS = ["company", "inc", "group", "corporation", "co", "Corp", "&", "llc", "the", "of", "a", "an"]
@@ -30,7 +38,6 @@ def simplifyURL(url):
 # Returns a list of the words in name of the company in descending order of "importance"
 # Do it by length, if a word is in the dictionary, and put unimportnat words like "of" "the" "llc" at the end
 def arrangeWordsByImportance(company):
-    company = "".join(c for c in company if c not in ('.',','))
     lst = sorted(company.lower().split(), key=lambda x: len(x), reverse=True)
     nonwords = []
     others = []
@@ -46,104 +53,92 @@ def arrangeWordsByImportance(company):
     return (nonwords, others)
 
 def getRankedURLSLst(urls):
+    print urls
+    # store each one by where it appears in search and number of times it appears
     rankedURLSDict = {}
-    for url in urls:
+    for i, url in enumerate(urls):
         simpleURL = simplifyURL(url)
         if simpleURL in rankedURLSDict:
-            rankedURLSDict[simpleURL] += 1
+            rankedURLSDict[simpleURL] = (rankedURLSDict[simpleURL][0] + 1, rankedURLSDict[simpleURL][1])
         else:
-            rankedURLSDict[simpleURL] = 1
-    # rank by number of times they appear and break ties by choosing smaller domains first
+            rankedURLSDict[simpleURL] = (1, i+1)
+    # rank by number of times they appear and break ties by choosing smaller domains first and then by rank
     # choose smaller domains first so that subsets of a later domain appear first eg morganstanley comes before morganstanleyclientserv
-    return sorted([(k, rankedURLSDict[k], k.split(".")[1]) for k in rankedURLSDict], key=lambda x: (x[1], -len(x[2])), reverse=True)
+    return sorted([(k, URL_COUNT_WEIGHT*rankedURLSDict[k][0] + URL_ORDER_WEIGHT*rankedURLSDict[k][1] + URL_LEN_WEIGHT*len(k.split(".")[1])) for k in rankedURLSDict], key=lambda x: x[1], reverse=True)
 
 def getCompanyAcroynms(company):
-    allWords = "".join([word[0] for word in company.split()]).lower()
-    important = "".join([word[0] for word in company.split() if word.lower() not in TRIVIAL_WORDS]).lower()
-    return [allWords] if allWords == important else [allWords, important]
+    allWords = [] # acroynm comprising of the first letters of all the words
+    important = [] # acroynm comprising of the first letters of all the non-trival words
+    # caps = [] # acroynm comprising of any word in it's entirity and the first letter of all other words
+    for word in company.split():
+        allWords.append(word[0])
+        # if word.isupper():
+        #     caps.append(word)
+        # else:
+        #     caps.append(word[0])
+        if word.lower() not in TRIVIAL_WORDS:
+            important.append(word[0])
+    return set(["".join(allWords).lower(), "".join(important).lower()]) # "".join(caps).lower()])
 
 # Returns the correct URL or the empty string if all provided URLS don't match
 def getBestURL(company, urls):
+    company = "".join(c for c in company if c not in ('.',','))
     rankedURLSList = getRankedURLSLst(urls)
     rankedCompWordsList = arrangeWordsByImportance(company)
     companyAcroynms = getCompanyAcroynms(company)
-    # print k
-    # print rankedURLSList
-    # print rankedCompWordsList
-    # print companyAcroynms
-    # print 
+    print rankedURLSList
+    print rankedCompWordsList
+    print companyAcroynms
     for e in rankedURLSList:
         # print e
-        domain = e[0].split(".")[1]
+        domainArr = e[0].split(".")
+        domain = domainArr[1] if len(domainArr) == 3 else domainArr[0]
         if domain in companyAcroynms:
             # print "if domain in companyAcroynms:"
-            return e[0]
+            return (e[0], 1.0, "domain in comp acronyms")
         for nonword in rankedCompWordsList[0]:
             if nonword in domain or domain in nonword:
                 # print "if nonword in domain or domain in nonword:"
                 return e[0]
-        if e[1] > 1:
-            # keep removing company words from name
-            curr = domain
-            for word in rankedCompWordsList[1]:
-                if word in curr:
-                    curr = curr.replace(word, '')
-            # want to be left with 3 or 4 characters 
-            # but in the case of word being 4 or less characters can only be left w/ 0 or 1
-            if len(domain) <= 4:
-                if len(curr) <= 1:
-                    # print "if len(curr) <= 1:"
-                    return e[0]
-            elif len(curr) <= 4:
-                # print "elif len(curr) <= 4:"
+        # keep removing company words from name
+        curr = domain
+        for word in rankedCompWordsList[1]:
+            if word in curr:
+                curr = curr.replace(word, '')
+        # want to be left with 3 or 4 characters 
+        # but in the case of word being 4 or less characters can only be left w/ 0 or 1
+        if len(domain) <= 4:
+            if len(curr) <= 1:
+                # print "if len(curr) <= 1:"
                 return e[0]
+        elif len(curr) <= 4:
+            # print "elif len(curr) <= 4:"
+            return e[0]
 
     return ""
 
-
-
-
-# def matchURLToName(query2URLS):
-def matchURLToName(L):
+def matchURLToName(companyNames):
     query2URLS = {}
-    for query in L:
+    for query in companyNames:
         getURLForQuery(query, query2URLS)
-
     notFound = []
     out = {}
     for k in query2URLS:
         best = getBestURL(k, query2URLS[k])
-        # print k
-        # print query2URLS[k]
-        # print best
-        # print 
         if best == "":
             notFound.append(k)
         else:
             out[k] = best
-    return out
+    return (out, notFound, query2URLS)
 
+def getBestURLForName(query2URLS):
+    notFound = []
+    out = {}
+    for k in query2URLS:
+        best = getBestURL(k, query2URLS[k])
+        if best == "":
+            notFound.append(k)
+        else:
+            out[k] = best
+    return (out, notFound)
 
-######################## TESTING ##############################
-# query2URLS = {}
-# query2URLS["Microsoft"] = ['https://www.microsoft.com/', 'https://www.microsoft.com/en-us/download', 'https://support.microsoft.com/', 'https://en.wikipedia.org/wiki/Microsoft']
-# query2URLS["National Pen Company"] = ['http://www.pens.com/national-pen-company', 'http://www.pens.com/', 'http://www.pens.com/customer-service-national-pen', 'http://www.pens.com/about-national-pen']
-# query2URLS["Designzillas, LLC"] = ['http://www.designzillas.com/', 'http://www.designzillas.com/hiring', 'http://www.designzillas.com/about-us', 'http://www.designzillas.com/contact-us']
-# query2URLS["California College of Arts"] = ['https://www.cca.edu/', 'https://www.cca.edu/academics', 'https://www.cca.edu/admissions', 'https://en.wikipedia.org/wiki/California_College_of_the_Arts']
-# query2URLS["Flynn"] = ['http://www.flynncenter.org/', 'https://flynn.io/', 'https://en.wikipedia.org/wiki/Errol_Flynn', 'https://github.com/flynn/flynn']
-# d = matchURLToName(["Microsoft", "National Pen Company",
-#         "Designzillas, LLC", "California college of Arts", "Flynn"])
-d = matchURLToName(testData.getNCompanies(20))
-# d = matchURLToName(["Morgan Stanley Dean Witter & Co."])
-for k in d:
-    print k
-    print d[k]
-    print 
-
-
-##################### CORRECT ANSWER ##########################################
-# Microsoft -> microsoft.com
-# National Pen Company -> nationalpen.com
-# Designzillas, LLC -> designzillas.com
-# California college of Arts -> cca.edu
-# Flynn -> flynn.io
