@@ -10,6 +10,7 @@ import json as m_json
 from urlparse import urlparse
 import enchant
 import testData
+import sys
 
 URL_COUNT_WEIGHT = .25 
 URL_ORDER_WEIGHT = -.25
@@ -53,18 +54,23 @@ def arrangeWordsByImportance(company):
     return (nonwords, others)
 
 def getRankedURLSLst(urls):
-    print urls
-    # store each one by where it appears in search and number of times it appears
+    # store the rank of each url, rank is a linear combination of count, len of url, and order
     rankedURLSDict = {}
+    min_url_rank = sys.maxint
+    max_url_rank = -sys.maxint
     for i, url in enumerate(urls):
         simpleURL = simplifyURL(url)
         if simpleURL in rankedURLSDict:
-            rankedURLSDict[simpleURL] = (rankedURLSDict[simpleURL][0] + 1, rankedURLSDict[simpleURL][1])
+            rankedURLSDict[simpleURL] = rankedURLSDict[simpleURL] + URL_COUNT_WEIGHT
         else:
-            rankedURLSDict[simpleURL] = (1, i+1)
-    # rank by number of times they appear and break ties by choosing smaller domains first and then by rank
-    # choose smaller domains first so that subsets of a later domain appear first eg morganstanley comes before morganstanleyclientserv
-    return sorted([(k, URL_COUNT_WEIGHT*rankedURLSDict[k][0] + URL_ORDER_WEIGHT*rankedURLSDict[k][1] + URL_LEN_WEIGHT*len(k.split(".")[1])) for k in rankedURLSDict], key=lambda x: x[1], reverse=True)
+            domainArr = simpleURL.split(".")
+            urlSize = len(domainArr[1]) if len(domainArr) == 3 else len(domainArr[0])
+            rankedURLSDict[simpleURL] = URL_COUNT_WEIGHT + URL_ORDER_WEIGHT*(i+1) + URL_LEN_WEIGHT*urlSize
+        min_url_rank = min_url_rank if rankedURLSDict[simpleURL] > min_url_rank else rankedURLSDict[simpleURL]
+        max_url_rank = max_url_rank if rankedURLSDict[simpleURL] < max_url_rank else rankedURLSDict[simpleURL]
+    # rank by linear combination of count, len of url, and order it appears and normalize all values to be in [0, 1]
+    divisor_for_url_rank = max_url_rank if max_url_rank - min_url_rank == 0 else max_url_rank - min_url_rank 
+    return sorted([(k, float(rankedURLSDict[k] - min_url_rank) / divisor_for_url_rank) for k in rankedURLSDict], key=lambda x: x[1], reverse=True)
 
 def getCompanyAcroynms(company):
     allWords = [] # acroynm comprising of the first letters of all the words
@@ -84,15 +90,23 @@ def getCompanyAcroynms(company):
 def getBestURL(company, urls):
     company = "".join(c for c in company if c not in ('.',','))
     rankedURLSList = getRankedURLSLst(urls)
+    for e in rankedURLSList:
+        print e[0]
+        print e[1]
+    print
     rankedCompWordsList = arrangeWordsByImportance(company)
     companyAcroynms = getCompanyAcroynms(company)
-    print rankedURLSList
-    print rankedCompWordsList
-    print companyAcroynms
+    # print rankedURLSList
+    # print rankedCompWordsList
+    # print companyAcroynms
     for e in rankedURLSList:
+        # normalize rank of each element
         # print e
         domainArr = e[0].split(".")
         domain = domainArr[1] if len(domainArr) == 3 else domainArr[0]
+        simplifiedName = company.replace(" ", "").lower()
+        if domain in simplifiedName or simplifiedName in domain:
+            return (e[0], 1.0, "domain in companyName or vice versa")
         if domain in companyAcroynms:
             # print "if domain in companyAcroynms:"
             return (e[0], 1.0, "domain in comp acronyms")
