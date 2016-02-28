@@ -9,7 +9,6 @@ You'll need to have previously installed:
 - pyenchant
 
 To do:
-- Add probablistic weighting 
-- For each website output, say how confident I am about it being a match
+- For each website output, say how confident I am about it being a match using training data (*need to get training data)
 - Convert from company websites to company names
 
