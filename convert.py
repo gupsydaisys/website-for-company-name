@@ -1,9 +1,6 @@
 ###########################################################################################
 # Maps a given list of company names to their website domain names
-
-# IF WGL Holdings Inc...when making acronym
-#www.wglholdings.com
-
+# Add downweighting for companies with non-www starting
 ########################################################################################### 
 import urllib
 import json as m_json
@@ -90,14 +87,15 @@ def getCompanyAcroynms(company):
 def getBestURL(company, urls):
     company = "".join(c for c in company if c not in ('.',','))
     rankedURLSList = getRankedURLSLst(urls)
-    for e in rankedURLSList:
-        print e[0]
-        print e[1]
-    print
-    rankedCompWordsList = arrangeWordsByImportance(company)
+    # for e in rankedURLSList:
+    #     print e[0]
+    #     print e[1]
+    # print
+    nonwords, others = arrangeWordsByImportance(company)
     companyAcroynms = getCompanyAcroynms(company)
     # print rankedURLSList
-    # print rankedCompWordsList
+    # print nonwords
+    # print others
     # print companyAcroynms
     for e in rankedURLSList:
         # normalize rank of each element
@@ -106,17 +104,17 @@ def getBestURL(company, urls):
         domain = domainArr[1] if len(domainArr) == 3 else domainArr[0]
         simplifiedName = company.replace(" ", "").lower()
         if domain in simplifiedName or simplifiedName in domain:
-            return (e[0], 1.0, "domain in companyName or vice versa")
+            return (e[0], e[1], "domain in companyName or vice versa")
         if domain in companyAcroynms:
             # print "if domain in companyAcroynms:"
-            return (e[0], 1.0, "domain in comp acronyms")
-        for nonword in rankedCompWordsList[0]:
+            return (e[0], e[1], "domain in comp acronyms")
+        for nonword in nonwords:
             if nonword in domain or domain in nonword:
                 # print "if nonword in domain or domain in nonword:"
-                return e[0]
+                return (e[0], e[1]*.5, "for nonword in nonwords")
         # keep removing company words from name
         curr = domain
-        for word in rankedCompWordsList[1]:
+        for word in others:
             if word in curr:
                 curr = curr.replace(word, '')
         # want to be left with 3 or 4 characters 
@@ -124,11 +122,10 @@ def getBestURL(company, urls):
         if len(domain) <= 4:
             if len(curr) <= 1:
                 # print "if len(curr) <= 1:"
-                return e[0]
+                return (e[0], e[1]*.4, "domain small but match all but one character")
         elif len(curr) <= 4:
             # print "elif len(curr) <= 4:"
-            return e[0]
-
+            return (e[0], e[1]*.4, "domain >4 and match all but 3 characters")
     return ""
 
 def matchURLToName(companyNames):
