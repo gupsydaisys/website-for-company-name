@@ -2,28 +2,76 @@ import testData
 import convert
 import random
 
-sample_number = 10
-companyToWebsite = testData.getDictionary()
+pastTrain = ['MineralTree', 'Nextera Energy', 'Oktagon Games', 'Macworld', 'Liberty Mutual', 'NeonMob', 'University of Nottingham', 'Amarillo Globe-News', 'UMMC', 'LabCorp', 'Veeva Systems', 'Red Tricycle', 'A View From My Seat', 'Sonic Electronix', 'W3 Consulting', 'WickedLocal', 'MovieTickets.com', 'Granicus', 'Rabt', 'Navvia', 'TrueAbility', 'Librato', '250ok', 'GigSky', 'Blue Jeans Network']
 
-lst = [random.choice(companyToWebsite.keys()) for i in range(sample_number)]
+def getTrainingSample(n):
+    # return [random.choice(testData.companyToWebsiteTrainingDictionary.keys()) for i in range(n)]
+    out = []
+    for i in range(n):
+        r = random.choice(testData.companyToWebsiteTrainingDictionary.keys())
+        while r in out or r in pastTrain:
+            r = random.choice(testData.companyToWebsiteTrainingDictionary.keys())
+        out.append(r)
+    pastTrain += out
+    return out
 
-d, notFound, query2URLS = convert.matchURLToName(lst)
-for k in d:
-    print k
-    if d[k][0] == companyToWebsite[k]:
-        print "yay"
-    else:
-        print d[k]
-        print companyToWebsite[k]
-    print 
+def checkAndPrintTrain(outputDictionary, notFoundList, query2URLS):
+    correct = 0
+    for k in outputDictionary:
+        print k
+        print outputDictionary[k]
+        print testData.companyToWebsiteTrainingDictionary[k]
+        if outputDictionary[k][0] == testData.companyToWebsiteTrainingDictionary[k]:
+            print "correct"
+            correct += 1
+        else:
+            print "incorrect"
+        print 
+    print "total correct: " + str(correct) + " out of " + str(len(outputDictionary.keys()))
+    print
+    for e in notFoundList:
+        print e
+        print query2URLS[e]
+        print testData.companyToWebsiteTrainingDictionary[e]
+        print
 
-print notFound
-    
+def printTrainingCorrectness(outputDictionary):
+    correct = 0
+    for k in outputDictionary:
+        if outputDictionary[k][0] == testData.companyToWebsiteTrainingDictionary[k]:
+            correct += 1
+    print "total correct: " + str(correct) + " out of " + str(len(outputDictionary.keys()))
 
+def thresholdForTrainingSample(value, outputDictionary):
+    correctMin = 1
+    incorrectMax = 0
+    for k in outputDictionary:
+        if outputDictionary[k][2] == value:
+            if outputDictionary[k][0] == testData.companyToWebsiteTrainingDictionary[k]:
+                correctMin = min(outputDictionary[k][1], correctMin)
+            else:
+                incorrectMax = max(outputDictionary[k][1], incorrectMax)
+    return (correctMin, incorrectMax)
 
+def getThresholdForValue(value):
+    correctMinList = []
+    incorrectMaxList = []
+    for i in range(10):
+        companyNamesSample = getTrainingSample(25)
+        query2URLSMap = convert.getQuery2URLS(companyNamesSample)
+        outputDictionary, notFoundList = convert.getBestURLForName(query2URLSMap)
+        correctMin, incorrectMax = thresholdForTrainingSample(value, outputDictionary)
+        correctMinList.append(correctMin)
+        incorrectMaxList.append(incorrectMax)
+    return correctMinList, incorrectMaxList
+
+companyNamesSample = getTrainingSample(25)
+query2URLSMap = convert.getQuery2URLS(companyNamesSample)
+outputDictionary, notFoundList = convert.getBestURLForName(query2URLSMap)
+print thresholdForTrainingSample("domain in companyName or vice versa", outputDictionary)
+printTrainingCorrectness(outputDictionary)
 
 ##################### My Webscrape ##########################################
-
 # d, notFound, query2URLS = convert.matchURLToName(testData.getNCompanies(15))
 # for k in d:
 #     print k
