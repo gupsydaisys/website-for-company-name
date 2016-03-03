@@ -1,13 +1,36 @@
 import testData
 import convert
+import random
 
-d, notFound, query2URLS = convert.matchURLToName(testData.getNCompanies(15))
+sample_number = 10
+companyToWebsite = testData.getDictionary()
+
+lst = [random.choice(companyToWebsite.keys()) for i in range(sample_number)]
+
+d, notFound, query2URLS = convert.matchURLToName(lst)
 for k in d:
     print k
-    print d[k]
-    print
+    if d[k][0] == companyToWebsite[k]:
+        print "yay"
+    else:
+        print d[k]
+        print companyToWebsite[k]
+    print 
 
 print notFound
+    
+
+
+
+##################### My Webscrape ##########################################
+
+# d, notFound, query2URLS = convert.matchURLToName(testData.getNCompanies(15))
+# for k in d:
+#     print k
+#     print d[k]
+#     print
+
+# print notFound
 
 
 # query2URLS = {}
