@@ -14,7 +14,7 @@ URL_ORDER_WEIGHT = -.25
 URL_LEN_WEIGHT = -.1
 
 ENGLISH_DICT = enchant.Dict("en_US")
-TRIVIAL_WORDS = ["company", "inc", "group", "corporation", "co", "Corp", "&", "llc", "the", "of", "a", "an"]
+TRIVIAL_WORDS = ["company", "inc", "group", "corporation", "co", "corp", "university", "college", "&", "llc", "the", "of", "a", "an"]
 
 # Code adapted from http://stackoverflow.com/questions/3898574/google-search-using-python-script #
 # Assume Q is a list of unique strings
@@ -93,16 +93,13 @@ def getBestURL(company, urls):
     # print
     nonwords, others = arrangeWordsByImportance(company)
     companyAcroynms = getCompanyAcroynms(company)
-    # print rankedURLSList
-    # print nonwords
-    # print others
-    # print companyAcroynms
     for e in rankedURLSList:
         # normalize rank of each element
         # print e
         domainArr = e[0].split(".")
+        # include longer version
         out = domainArr[1] + "." + domainArr[2] if len(domainArr) == 3 else domainArr[0] + "." + domainArr[1]
-        domain = domainArr[1] if len(domainArr) == 3 else domainArr[0]
+        domain = domainArr[1] if len(domainArr) >= 3 else domainArr[0]
         simplifiedName = company.replace(" ", "").lower()
         if domain in simplifiedName or simplifiedName in domain:
             return (out, e[1], "domain in companyName or vice versa")
@@ -129,19 +126,11 @@ def getBestURL(company, urls):
             return (out, e[1]*.4, "domain >4 and match all but 3 characters")
     return ""
 
-def matchURLToName(companyNames):
+def getQuery2URLS(companyNames):
     query2URLS = {}
     for query in companyNames:
         getURLForQuery(query, query2URLS)
-    notFound = []
-    out = {}
-    for k in query2URLS:
-        best = getBestURL(k, query2URLS[k])
-        if best == "":
-            notFound.append(k)
-        else:
-            out[k] = best
-    return (out, notFound, query2URLS)
+    return query2URLS
 
 def getBestURLForName(query2URLS):
     notFound = []
