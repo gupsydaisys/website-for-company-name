@@ -8,8 +8,7 @@ You'll need to have previously installed:
 - urlparse 
 - pyenchant
 
-To do:
-- Add probablistic weighting 
-- For each website output, say how confident I am about it being a match
-- Convert from company websites to company names
-
+Once you have training data...
+- for each website output, say how confident I am about it to being a match
+- figure out the optimal value for the amount of characters left when you remove company words from the domain
+- figure out how to threshold choosing all words in the company name
