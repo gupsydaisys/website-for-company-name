@@ -1,34 +1,24 @@
 import csv
 import random
 
-def getSample():
+def getD():
     n = 20
     with open("dataset1.csv") as f:
         for line in f:
-            arr = line.split(", ")
-        next = []
-        for i, e in enumerate(arr):
-            start = e.find("\r")
-            if start == -1:
-                next.append(e)
-            else:
-                first = e[0:start]
-                last = e[start+1:]
-                if ("\r" not in first) and ("\r" not in last):
-                    next.append(first)
-                    next.append(last)
-                else:
-                    next.append("medimmune.com")
-                    next.append("University of North Carolina at Chapel Hill")
+            arr = line.replace("\r", "").split(",")[:-1]
+            # arr = line.split(",")
+        # for i, e in enumerate(arr):
+        #     e = e.strip(" ")
+        #     if e[0:1] == '\r':
+        #         e = e[1:]
+        #     if e != "":
+        #         next.append(e)
         compToWeb = {}
-        webToComp = {}
-        isCompany = True
-        for i in range(len(next)):
-            if isCompany:
-                compToWeb[next[i]] = next[i+1]
-                webToComp[next[i+1]] = next[i]
-            isCompany = not isCompany
-        return compToWeb, webToComp
+        for i in range(len(arr)):
+            if i % 2 == 0:
+                compToWeb[arr[i]] = arr[i+1]
+        return compToWeb
+        # return compToWeb, webToComp
 
 def getNCompanies(n=20):
     n = 20 if n < 1 or n > 947 else int(n)
