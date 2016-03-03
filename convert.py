@@ -98,7 +98,10 @@ def getBestURL(company, urls):
         # print e
         domainArr = e[0].split(".")
         # include longer version
-        out = domainArr[1] + "." + domainArr[2] if len(domainArr) == 3 else domainArr[0] + "." + domainArr[1]
+        # WARNING THIS WILL THROW AN ERROR if for some reason there isn't a dot in the domain name
+        out = domainArr[0] + "." + domainArr[1]
+        if len(domainArr) >= 3:
+            out = '.'.join(domainArr[1:])
         domain = domainArr[1] if len(domainArr) >= 3 else domainArr[0]
         simplifiedName = company.replace(" ", "").lower()
         if domain in simplifiedName or simplifiedName in domain:
